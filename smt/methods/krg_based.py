@@ -505,7 +505,9 @@ class KRG_BASED(SM):
             d = self.options['n_comp']
 
         if len(self.options['theta0']) != d:
-            raise Exception('the number of %s should be equal to the length of theta0., (d)')
+            raise Exception('the dimension of X should be equal '
+                            'to the length of theta0 (=%s), but got %s.' %
+                            (len(self.options['theta0']), d))
 
         if not callable(self.options['corr']):
             if self.options['corr'] in self._correlation_types:
