@@ -227,7 +227,7 @@ class Test(unittest.TestCase):
         xt = np.array([0., 1., 2., 3., 4.])
         yt = np.array([0., 1., 1.5, 0.5, 1.0])
 
-        sm = KPLSK(theta0=[1e-2])
+        sm = KPLSK(theta0=np.array([1e-2]))
         sm.set_training_values(xt, yt)
         sm.train()
 

@@ -160,7 +160,7 @@ def squar_exp(theta, d):
     r: np.ndarray[n_obs * (n_obs - 1) / 2,1]
         An array containing the values of the autocorrelation model.
     """
-
+#     theta = np.asarray(theta)
     r = np.zeros((d.shape[0],1))
     n_components = d.shape[1]
 

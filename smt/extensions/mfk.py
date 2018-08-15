@@ -16,10 +16,71 @@ from scipy.linalg import solve_triangular
 from scipy import linalg
 from sklearn.metrics.pairwise import manhattan_distances
 import copy 
+from numpy import double
+from numpy import square
+import math
+from scipy.linalg import solve_triangular, cholesky
 
 """
 The MFK class.
 """
+def quadra(x, dimension):
+    """
+    Give the regression part for a quadratic regression in a kriging model for the
+    jacobian computation
+    Parameters:
+    -----------
+    - x: array_like
+    The input of the kriging model
+    - dimension: int
+    The dimension of input
+
+    Returns:
+    --------
+    - df: array_like
+    The regression part of the kriging model
+    """
+    df = np.zeros((fct.sum_x(dimension) + 1 + dimension, dimension))
+    deb = dimension + 1
+    prec = deb
+    for i in range(dimension):
+        df[i + 1][i] = 1
+
+        df[prec][i] = 2 * x[i]
+
+        compteur = 1
+        for j in range(i + 2, dimension + 1):
+            df[prec + compteur][i] = x[j - 1]
+            compteur = compteur + 1
+
+        compteur = 1
+        for k in range(i + 1, dimension):
+            df[prec + compteur][k] = x[i]
+            compteur = compteur + 1
+
+        prec = prec + (dimension - i)
+    return df
+
+
+def linear(x, dim):
+    """
+    Give the regression part for a linear regression in a kriging model for the
+    jacobian computation
+    Parameters:
+    -----------
+    - x: array_like
+    The input of the kriging model
+    - dimension: int
+    The dimension of input
+    Returns:
+    --------
+    - df: array_like
+    The regression part of the kriging model
+    """
+    df = np.zeros((dim + 1, dim))
+    for i in range(dim):
+        df[i + 1][i] = 1
+    return df
 
 
 class MFK(KrgBased):
@@ -138,6 +199,7 @@ class MFK(KrgBased):
                 self.q_all[lvl] = F_rho.shape[1]
                 self.F_all[lvl] = np.hstack((F_rho*np.dot(self._predict_intermediate_values(X[lvl], lvl),
                                               np.ones((1,self.q_all[lvl]))), self.F_all[lvl]))
+                print self.F_all[lvl]
             else:
                 self.q_all[lvl] = 0
 
@@ -343,8 +405,11 @@ class MFK(KrgBased):
 
         # Calculate recursively kriging variance at level i
         for i in range(1,nlevel):
+        
             F = self.F_all[i]
             C = self.optimal_par[i]['C']
+            
+            
             g = self.options['rho_regr'](X)
             dx = manhattan_distances(X, Y=self.X[i], sum_over_features=False)
             d = self._componentwise_distance(dx)
@@ -356,7 +421,7 @@ class MFK(KrgBased):
             r_t = solve_triangular(C,r_.T, lower=True)
             G = self.optimal_par[i]['G']
             beta = self.optimal_par[i]['beta']
-
+                           
             # scaled predictor
             sigma2 = self.optimal_par[i]['sigma2'] 
             q = self.q_all[i]
@@ -440,7 +505,7 @@ class MFK(KrgBased):
         d_dx=x[:,kx].reshape((n_eval,1))-self.X[0][:,kx].reshape((1,self.nt_all[0]))
         theta = self.optimal_theta[0]
 
-        dy_dx[:,0] = np.ravel((df_dx-2*theta[kx]*np.dot(d_dx*r_,gamma))*self.y_std/self.X_std[kx])
+        dy_dx[:,0] = np.ravel((df_dx-2*theta[kx]*np.dot(d_dx*r_,gamma))*self.y_std/self.X_std)
 
 
 
@@ -463,9 +528,131 @@ class MFK(KrgBased):
             d_dx=x[:,kx].reshape((n_eval,1))-self.X[i][:,kx].reshape((1,self.nt_all[i]))
             theta = self.optimal_theta[i]
             # scaled predictor
-            dy_dx[:,i] = np.ravel(df_dx-2*theta[kx]*np.dot(d_dx*r_,gamma))*self.y_std/self.X_std[kx]
+            dy_dx[:,i] = np.ravel(df_dx-2*theta[kx]*np.dot(d_dx*r_,gamma))*self.y_std/self.X_std
        
         
            
         return dy_dx[:,-1]
+    
+    def predict_jacobian(self, x):
+#         print 'jacobian : ', x
+        jac = np.zeros(x.shape)
+        for dim in range(x.shape[1]):
+            jac[:,dim] = self._predict_derivatives(x, dim)
+        return jac
+    
+    def _compute_r_and_dr(self, x, lvl):
+        """
+        Compute the correlation term and the derivation term of the kriging model
+        Parameters:
+        -----------
+        - x: array_like
+        Input
+        Returns:
+        --------
+        - r: array_like
+        The correlation term of the kriging model
+        - dr: array_like
+        The derivation of the correlation term of the kriging model
+        """
+        if self.options['corr'].__name__ == 'squar_exp':
+
+            mat_x = self.X[lvl]
+            xn_x = x - mat_x
+            theta = self.optimal_theta[lvl]
+            sqr = square(xn_x)
+            p = 2
+            theta = np.resize(theta, (self.nx,))
+            sqr_0 = np.dot(sqr, theta)
+            r = []
+            for i in range(len(sqr_0)):
+                r.append(math.exp(-sqr_0[i]))
+            r = np.array([r])
+            mat = -p * np.einsum('j,ij->ij', theta.T, xn_x)
+            dr = np.einsum('i,ij->ij', r[0], mat)
+
+            return r.T, dr
+    
+    def predict_derivative_variance(self, x):
+        der_var = np.zeros(x.shape)
+        for i, pt in enumerate(x) :
+            der_var[i,:] = self.predict_deriv_var_pt(0,pt)
+        for lvl in range(1, self.nlvl):
+#             print self.optimal_par[lvl]['beta'][0]**2
+            for i, pt in enumerate(x) :
+                
+                rho2 = self.optimal_par[lvl]['beta'][0]**2
+                addi = self.predict_deriv_var_pt(lvl,pt)
+#                 print der_var[i,:], rho2, addi
+                der_var[i,:] =  rho2* der_var[i,:] + addi
+                                
+        
+        return der_var
+    
+    
+    
+    def predict_deriv_var_pt(self, lvl, x):
+        x_mean = 0.
+        x_std = 1.
+        x = (x - x_mean) / x_std
+        x = np.atleast_2d(x)
+#         print lvl
+        sigma2 = self.optimal_par[lvl]['sigma2']
+
+        cholesky_k = self.optimal_par[lvl]['C']
+        r, dr = self._compute_r_and_dr(x, lvl)
+        rho1 = solve_triangular(cholesky_k, r, lower=True)
+        invKr = solve_triangular(cholesky_k.T, rho1)
+
+        mat_x = self.X[lvl]
+        xn_x = x - mat_x
+        abs_ = abs(xn_x)
+
+        p1 = np.dot(dr.T, invKr).T
+
+        p2 = np.dot(invKr.T, dr)
+
+        f_x = self.options['poly'](x).T
+        mat_x = self.X[lvl]
+        F = []
+        for x_ in mat_x:
+            x_ = np.atleast_2d(x_)
+            f = self.options['poly'](x_)
+            F.append(f[0])
+        F = np.array(F)
+
+        rho2 = solve_triangular(cholesky_k, F, lower=True)
+        invKF = solve_triangular(cholesky_k.T, rho2)
+
+        A = f_x.T - np.dot(r.T, invKF)
+
+        B = np.dot(F.T, invKF)
+
+        rho3 = cholesky(B, lower=True)
+        invBAt = solve_triangular(rho3, A.T, lower=True)
+        D = solve_triangular(rho3.T, invBAt)
+        if self.options['poly'].__name__ == 'linear':
+            df = linear(x, self.nx).T
+        elif self.options['poly'].__name__ == 'quadratic':
+            df = quadra(x[0], self.nx).T
+        else:
+            df = np.array([0])
+            df = np.resize(df, (self.nx, f_x.shape[0]))
+
+        dA = df - np.dot(dr.T, invKF)
+
+        p3 = np.dot(dA, D).T
+
+        p4 = np.dot(D.T, dA.T)
+
+        prime = -p1 - p2 + p3 + p4
+
+        derived_variance = []
+
+        x_std = np.resize(x_std, self.nx)
+        for i in range(len(x_std)):
+            derived_variance.append(sigma2 * prime.T[i] / x_std[i])
+
+        return np.array(derived_variance).T
+
         

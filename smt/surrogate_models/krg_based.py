@@ -16,6 +16,7 @@ TODO:
 
 from __future__ import division
 import warnings
+from scipy.stats._distn_infrastructure import instancemethod
 warnings.filterwarnings("ignore")
 
 import numpy as np
@@ -53,7 +54,7 @@ class KrgBased(SurrogateModel):
         supports = self.supports
 
         #declare('theta0', None, types=(list, np.ndarray), desc='Initial hyperparameters')
-        declare('poly', 'constant',types=FunctionType,values=('constant', 'linear', 'quadratic'),
+        declare('poly', 'constant',#types=[FunctionType, instancemethod],values=('constant', 'linear', 'quadratic'),
                 desc='regr. term')
         declare('corr', 'squar_exp', types=FunctionType,values=('abs_exp', 'squar_exp'),
                 desc='type of corr. func.')
@@ -61,8 +62,12 @@ class KrgBased(SurrogateModel):
                 desc='Directory for loading / saving cached data; None means do not save or load')
         declare('eval_noise', False, types = bool, \
                 values = (True, False), desc ='noise evaluation flag')
+        declare('normalize', True, types = bool, \
+                values = (True, False), desc ='noise evaluation flag')
         declare('noise0', 1e-6, types = float, \
                 desc ='Initial noise hyperparameter')
+        declare('nugget', 10., types = float, \
+                desc ='multiples of machine epsilon for nugget')
         self.best_iteration_fail = None
         self.nb_ill_matrix = 5
         supports['derivatives'] = True
@@ -89,9 +94,12 @@ class KrgBased(SurrogateModel):
             X,y = self._compute_pls(X.copy(),y.copy())
 
         # Center and scale X and y
-        self.X_norma, self.y_norma, self.X_mean, self.y_mean, self.X_std, \
-            self.y_std = standardization(X,y)
-
+        if self.options['normalize'] == True :
+            self.X_norma, self.y_norma, self.X_mean, self.y_mean, self.X_std, \
+                self.y_std = standardization(X,y)
+        else :
+            self.X_norma, self.y_norma = X, y
+            self.X_mean, self.y_mean, self.X_std, self.y_std = 0., 0., 1.,1.
         # Calculate matrix of distances D between samples
         D, self.ij = l1_cross_distances(self.X_norma)
         if (np.min(np.sum(D, axis=1)) == 0.):
@@ -109,8 +117,11 @@ class KrgBased(SurrogateModel):
         # Optimization
         self.optimal_rlf_value, self.optimal_par, self.optimal_theta = \
                 self._optimize_hyperparam(D)
+        self.noise = 0.
         if self.options['eval_noise']:
+            self.noise = self.optimal_theta[-1]
             self.optimal_theta = self.optimal_theta[:-1]
+        
         del self.y_norma, self.D
 
     def _train(self):
@@ -180,7 +191,7 @@ class KrgBased(SurrogateModel):
                 # in the case of multi-fidelity optimization
                 # it is very probable that lower-fidelity correlation matrix
                 # becomes ill-conditionned 
-                nugget = 10.* nugget 
+                nugget = 5.* nugget 
         noise = 0.
         tmp_var = theta 
         if self.options['eval_noise']:
@@ -231,6 +242,7 @@ class KrgBased(SurrogateModel):
 
         # Compute/Organize output
         if self.name == 'MFK':
+            
             n_samples = self.nt
             p = self.p
             q = self.q
@@ -349,10 +361,13 @@ class KrgBased(SurrogateModel):
         d_dx=x[:,kx-1].reshape((n_eval,1))-self.X_norma[:,kx-1].reshape((1,self.nt))
         if self.name != 'Kriging' and self.name != 'KPLSK':
             theta = np.sum(self.optimal_theta * self.coeff_pls**2,axis=1)
+            
         else:
             theta = self.optimal_theta
-        y = (df_dx[0]-2*theta[kx-1]*np.dot(d_dx*r,gamma))*self.y_std/self.X_std[kx-1]
-
+        if self.options['normalize']:
+            y = (df_dx[0]-2*theta[kx-1]*np.dot(d_dx*r,gamma))*self.y_std/self.X_std[kx-1]
+        else:
+            y = (df_dx[0]-2*theta[kx-1]*np.dot(d_dx*r,gamma))*self.y_std/self.X_std
         return y
 
     def _predict_variances(self, x):
@@ -537,7 +552,7 @@ class KrgBased(SurrogateModel):
                 raise ValueError("regr should be one of %s or callable, "
                                  "%s was given." % (self._regression_types.keys(),
                                 self.options['poly']))
-        if self.name == 'MFK' and not callable(self.options['rho_regr']):
+        if self.name in ['MFK', 'MFKPLS'] and not callable(self.options['rho_regr']):
             if self.options['rho_regr'] in self._regression_types:
                 self.options['rho_regr'] = self._regression_types[
                     self.options['rho_regr']]
