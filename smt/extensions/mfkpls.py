@@ -17,7 +17,7 @@ from scipy import linalg
 from sklearn.metrics.pairwise import manhattan_distances
 import copy 
 from functools import partial
-
+from smt.utils.kriging_utils import standardization
 """
 The MFK class.
 """
@@ -51,16 +51,13 @@ class MFKPLS(KrgBased):
     
     
     def create_trained_model(self, xt, yt, LF_Train = True, eval_noise = True):
-        if eval_noise:
-            flag = self.options['noise0']
-        else :
-            flag = eval_noise
+        flag = self.options['noise0'] and eval_noise
             
             
         if self.options['model']== 'KRG':
             mypoly = self.options['poly'] if LF_Train else self.poly_mfk
-            model = KRG(theta0 = self.options['theta0'], eval_noise = self.options['eval_noise'],
-                        noise0 = flag , poly = mypoly,
+            model = KRG(theta0 = self.options['theta0'], eval_noise = flag,
+                        noise0 = self.options['noise0'] , poly = mypoly,
                         corr = self.options['corr'], normalize = False, print_global = False)
                         #, data_dir = self.options['data_dir']    
             model.set_training_values(xt, yt)
@@ -69,8 +66,8 @@ class MFKPLS(KrgBased):
             return model
         elif self.options['model']== 'KPLS':
             mypoly = self.options['poly'] if LF_Train else self.poly_mfk
-            nugget_mutiplier = 50. if LF_Train else 10.
-            model = KPLS(n_comp =self.options['n_comp'], theta0 = self.options['theta0'], eval_noise = self.options['eval_noise'],
+            nugget_mutiplier = 10. if LF_Train else 10.
+            model = KPLS(n_comp =self.options['n_comp'], theta0 = self.options['theta0'], eval_noise = flag,
                         noise0 = self.options['noise0'], poly = mypoly,
                         corr = self.options['corr'], normalize = False, 
                         print_global = False, nugget = nugget_mutiplier)
@@ -103,46 +100,62 @@ class MFKPLS(KrgBased):
         yt_LF = self.training_points[i][0][1]
         xt_HF = self.training_points[None][0][0]
         yt_HF = self.training_points[None][0][1]
+        
+        _, _, self.X_mean, self.y_mean, self.X_std, \
+            self.y_std = standardization(np.concatenate([xt_LF, xt_HF],axis=0), \
+                                         np.concatenate([yt_LF, yt_HF],axis=0))
+        
+        
+        xt_LF = (xt_LF-self.X_mean)/self.X_std
+        xt_HF = (xt_HF-self.X_mean)/self.X_std
+        yt_LF = (yt_LF-self.y_mean)/self.y_std
+        yt_HF = (yt_HF-self.y_mean)/self.y_std
+        
         self.LF_model = self.create_trained_model(xt_LF,yt_LF)
         
-#         if self.options['eval_noise'] and self.options['optim_var']:
-#             
-#             self.LF_model = self.create_trained_model(xt,\
-#                                                 self.LF_model.predict_values(xt), 
-#                                                 eval_noise = False)
+        if self.options['eval_noise'] and self.options['optim_var']:
+             
+            self.LF_model = self.create_trained_model(xt_LF,\
+                                                self.LF_model.predict_values(xt_LF), 
+                                                eval_noise = False)
             
         
         self.HF_model = self.create_trained_model(xt_HF, yt_HF, LF_Train=False)
-#         if self.options['eval_noise'] and self.options['optim_var']:
-#             self.HF_model = self.create_trained_model(xt,\
-#                                                 self.HF_model.predict_values(xt), \
-#                                                 LF_Train=False, 
-#                                                 eval_noise = False)
+        if self.options['eval_noise'] and self.options['optim_var']:
+            
+            self.HF_model = self.create_trained_model(xt_HF,\
+                                                self.HF_model.predict_values(xt_HF), \
+                                                LF_Train=False, 
+                                                eval_noise = False)
         
         
         
         
-    def _predict_values(self, X):
-        return self.HF_model.predict_values(X)
+    def _predict_values(self, x, descale = True):
+        x = (x-self.X_mean)/self.X_std
+        return self.HF_model.predict_values(x)*self.y_std+self.y_mean
     
     
-    def _predict_variances(self, X):
+    def _predict_variances(self, x):
+        x = (x-self.X_mean)/self.X_std
         rho = self.HF_model.optimal_par['beta'][0]
-        return rho**2*self.LF_model.predict_variances(X)+ \
-            self.HF_model.predict_variances(X)
+        return (rho**2*self.LF_model.predict_variances(x)+ \
+            self.HF_model.predict_variances(x))*self.y_std**2
     
     def predict_variances_all_levels(self, x):
+        x = (x-self.X_mean)/self.X_std
         rho = self.HF_model.optimal_par['beta'][0]
-        MSE = np.concatenate((self.LF_model.predict_variances(x),
-                             self.HF_model.predict_variances(x)),
+        MSE = np.concatenate((self.LF_model.predict_variances(x)*self.y_std**2,
+                             self._predict_variances(x)),
                               axis = 1)
         return MSE, [np.array([rho**2])]
         
             
     def _predict_derivatives(self, x, kx):
+        x = (x-self.X_mean)/self.X_std
         n_eval = x.shape[0]
         rho = self.HF_model.optimal_par['beta'][0]
-        p1 = np.ravel(rho*self.LF_model.predict_derivatives(x, kx))
+        p1 = np.ravel(rho*self.LF_model.predict_derivatives(x, kx))*self.y_std/self.X_std
         
         
         F = self.HF_model.F
@@ -163,7 +176,7 @@ class MFKPLS(KrgBased):
         if self.options['model']=='KPLS':
             theta = np.sum(self.HF_model.optimal_theta * self.HF_model.coeff_pls**2,axis=1)
         
-        p2 = np.ravel(-2*theta[kx]*np.dot(d_dx*r_,gamma))*self.HF_model.y_std/self.HF_model.X_std
+        p2 = np.ravel(-2*theta[kx]*np.dot(d_dx*r_,gamma))*self.y_std/self.X_std
         
         
         return p1 + p2
