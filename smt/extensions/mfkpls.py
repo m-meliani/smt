@@ -24,13 +24,13 @@ The MFK class.
 
 
 
-class MFK_Turbo(KrgBased):
+class MFKPLS(KrgBased):
 
     """
     - MFK
     """
     def _initialize(self):
-        super(MFK_Turbo, self)._initialize()
+        super(MFKPLS, self)._initialize()
         declare = self.options.declare
         
         declare('rho_regr', 'constant',types=FunctionType,\

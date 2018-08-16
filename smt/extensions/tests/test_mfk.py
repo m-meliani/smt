@@ -27,10 +27,10 @@ yc = cheap(Xc)
 
 Xr = np.linspace(0,1, 100)
 Yr = expensive (Xr)
-from smt.extensions import MFK_Turbo
+from smt.extensions.mfkpls import MFKPLS
 
-sm = MFK_Turbo(theta0=np.array(Xe.shape[1]*[1.]), model = 'KPLS', 
-               eval_noise = True, print_global = False)
+sm = MFKPLS(theta0=np.array(Xe.shape[1]*[1.]), model = 'KPLS', 
+               eval_noise = False, print_global = False)
 
 sm.set_training_values(Xc, yc, name= 0)
 sm.set_training_values(Xe, ye)
