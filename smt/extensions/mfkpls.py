@@ -99,9 +99,11 @@ class MFKPLS(KrgBased):
         
 #         print self.training_points
         i=0
-        xt = self.training_points[i][0][0]
-        yt = self.training_points[i][0][1]
-        self.LF_model = self.create_trained_model(xt,yt)
+        xt_LF = self.training_points[i][0][0]
+        yt_LF = self.training_points[i][0][1]
+        xt_HF = self.training_points[None][0][0]
+        yt_HF = self.training_points[None][0][1]
+        self.LF_model = self.create_trained_model(xt_LF,yt_LF)
         
 #         if self.options['eval_noise'] and self.options['optim_var']:
 #             
@@ -109,9 +111,8 @@ class MFKPLS(KrgBased):
 #                                                 self.LF_model.predict_values(xt), 
 #                                                 eval_noise = False)
             
-        xt = self.training_points[None][0][0]
-        yt = self.training_points[None][0][1]
-        self.HF_model = self.create_trained_model(xt, yt, LF_Train=False)
+        
+        self.HF_model = self.create_trained_model(xt_HF, yt_HF, LF_Train=False)
 #         if self.options['eval_noise'] and self.options['optim_var']:
 #             self.HF_model = self.create_trained_model(xt,\
 #                                                 self.HF_model.predict_values(xt), \
