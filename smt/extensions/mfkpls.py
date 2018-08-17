@@ -66,7 +66,7 @@ class MFKPLS(KrgBased):
             return model
         elif self.options['model']== 'KPLS':
             mypoly = self.options['poly'] if LF_Train else self.poly_mfk
-            nugget_mutiplier = 10. if LF_Train else 10.
+            nugget_mutiplier = 50. if LF_Train else 10.
             model = KPLS(n_comp =self.options['n_comp'], theta0 = self.options['theta0'], eval_noise = flag,
                         noise0 = self.options['noise0'], poly = mypoly,
                         corr = self.options['corr'], normalize = False, 

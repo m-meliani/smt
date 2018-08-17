@@ -185,7 +185,7 @@ class KrgBased(SurrogateModel):
         par = {}
         # Set up R
         MACHINE_EPSILON = np.finfo(np.double).eps
-        nugget = 10.*MACHINE_EPSILON
+        nugget = self.options['nugget']*MACHINE_EPSILON
         if self.name == 'MFK':
             if self._lvl != self.nlvl:
                 # in the case of multi-fidelity optimization
