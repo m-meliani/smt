@@ -32,7 +32,8 @@ class MFKPLS(KrgBased):
     def _initialize(self):
         super(MFKPLS, self)._initialize()
         declare = self.options.declare
-        
+        declare('model', 'KRG',\
+                values=('KRG', 'KPLS'), desc='model designation')
         declare('rho_regr', 'constant',types=FunctionType,\
                 values=('constant', 'linear', 'quadratic'), desc='regr. term')
         declare('theta0', None, types=(list, np.ndarray), \
@@ -40,9 +41,7 @@ class MFKPLS(KrgBased):
         declare('optim_var', True, types = bool, \
                 values = (True, False), \
                 desc ='Turning this option to True, forces variance to zero at HF samples ')
-        declare('model', 'KPLS',types=FunctionType,\
-                values=('KRG', 'KPLS'), desc='model')
-        declare('n_comp', 1, types = int, desc='nb of components')
+        declare('n_comp', None, types = int, desc='nb of components')
         
         
         self.name = 'MFKPLS'
@@ -53,9 +52,11 @@ class MFKPLS(KrgBased):
     def create_trained_model(self, xt, yt, LF_Train = True, eval_noise = True):
         flag = self.options['noise0'] and eval_noise
             
-            
+        
         if self.options['model']== 'KRG':
+            print flag, self.options['model']
             mypoly = self.options['poly'] if LF_Train else self.poly_mfk
+            
             model = KRG(theta0 = self.options['theta0'], eval_noise = flag,
                         noise0 = self.options['noise0'] , poly = mypoly,
                         corr = self.options['corr'], normalize = False, print_global = False)
@@ -106,7 +107,9 @@ class MFKPLS(KrgBased):
             self.y_std = standardization(np.concatenate([xt_LF, xt_HF],axis=0), \
                                          np.concatenate([yt_LF, yt_HF],axis=0))
         
-        
+#         self.X_mean, self.y_mean, self.X_std, \
+#             self.y_std = np.zeros((xt_LF.shape[1],)), 0.,np.ones((xt_LF.shape[1],)),1.
+
         xt_LF = (xt_LF-self.X_mean)/self.X_std
         xt_HF = (xt_HF-self.X_mean)/self.X_std
         yt_LF = (yt_LF-self.y_mean)/self.y_std

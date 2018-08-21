@@ -562,7 +562,7 @@ class KrgBased(SurrogateModel):
                                  "%s was given." % (self._regression_types.keys(),
                                 self.options['rho_regr']))
 
-        if self.name == 'Kriging' or self.name == 'MFK':
+        if self.name == 'Kriging' or self.name == 'MFK' or self.options['n_comp'] is None:
             d = self.nx
         else:
             d = self.options['n_comp']
