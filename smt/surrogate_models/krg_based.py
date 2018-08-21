@@ -222,7 +222,7 @@ class KrgBased(SurrogateModel):
         detR = (np.diag(C) ** (2. / self.nt)).prod()
 
         # Compute/Organize output
-        if self.name == 'MFK':
+        if self.name in ['MFK', 'MFKPLS']:
             n_samples = self.nt
             p = self.p
             q = self.q
@@ -518,7 +518,7 @@ class KrgBased(SurrogateModel):
                 raise ValueError("regr should be one of %s or callable, "
                                  "%s was given." % (self._regression_types.keys(),
                                 self.options['poly']))
-        if self.name == 'MFK' and not callable(self.options['rho_regr']):
+        if 'MFK' in self.name and not callable(self.options['rho_regr']):
             if self.options['rho_regr'] in self._regression_types:
                 self.options['rho_regr'] = self._regression_types[
                     self.options['rho_regr']]
