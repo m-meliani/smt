@@ -117,6 +117,7 @@ class KrgBased(SurrogateModel):
         # Optimization
         self.optimal_rlf_value, self.optimal_par, self.optimal_theta = \
                 self._optimize_hyperparam(D)
+#         print self.optimal_theta
         self.noise = 0.
         if self.options['eval_noise']:
             self.noise = self.optimal_theta[-1]
@@ -482,6 +483,7 @@ class KrgBased(SurrogateModel):
                                         best_optimal_rlf_value , best_optimal_par = \
                                             self._reduced_likelihood_function(theta= \
                                                 best_optimal_theta)
+#                         print best_optimal_theta
                     else:
                         if np.isinf(optimal_rlf_value):
                             stop += 1
@@ -524,7 +526,6 @@ class KrgBased(SurrogateModel):
             if self.name == 'KPLSK':
                 if exit_function:
                     return best_optimal_rlf_value, best_optimal_par, best_optimal_theta
-
                 if self.options['corr'].__name__ == 'squar_exp':
                     self.options['theta0'] = (best_optimal_theta*self.coeff_pls**2).sum(1)
                 else:
@@ -533,7 +534,7 @@ class KrgBased(SurrogateModel):
                 limit = 10*self.options['n_comp']
                 self.best_iteration_fail = None
                 exit_function = True
-        
+#         print best_optimal_theta
         return best_optimal_rlf_value, best_optimal_par, best_optimal_theta
 
 

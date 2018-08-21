@@ -100,6 +100,7 @@ class MFKPLS(KrgBased):
         yt_LF = self.training_points[i][0][1]
         xt_HF = self.training_points[None][0][0]
         yt_HF = self.training_points[None][0][1]
+        print 'shapes :', xt_LF.shape, xt_HF.shape, yt_LF.shape, yt_HF.shape
         
         _, _, self.X_mean, self.y_mean, self.X_std, \
             self.y_std = standardization(np.concatenate([xt_LF, xt_HF],axis=0), \
@@ -128,7 +129,8 @@ class MFKPLS(KrgBased):
                                                 LF_Train=False, 
                                                 eval_noise = False)
         
-        
+        rho = self.HF_model.optimal_par['beta'][0]
+        print rho
         
         
     def _predict_values(self, x, descale = True):
