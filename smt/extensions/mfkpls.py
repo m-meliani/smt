@@ -5,6 +5,7 @@ Created on Fri May 04 10:26:49 2018
 @author: Mostafa Meliani <melimostafa@gmail.com>
 Multi-Fidelity co-Kriging: recursive formulation with autoregressive model of 
 order 1 (AR1)
+Partial Least Square decomposition added on lowest fidelity level
 """
 
 from __future__ import division
