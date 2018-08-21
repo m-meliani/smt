@@ -113,7 +113,8 @@ class KrgBased(SurrogateModel):
         else:
             p = 1
         self._check_F(n_samples_F,p)
-
+        
+        self.p = p
         # Optimization
         self.optimal_rlf_value, self.optimal_par, self.optimal_theta = \
                 self._optimize_hyperparam(D)
@@ -242,13 +243,16 @@ class KrgBased(SurrogateModel):
         detR = (np.diag(C) ** (2. / self.nt)).prod()
 
         # Compute/Organize output
-        if self.name == 'MFK':
+        if self.name in ['MFK', 'MFKPLS']:
             
             n_samples = self.nt
-            p = self.p
-            q = self.q
-            sigma2 = (rho ** 2.).sum(axis=0) /(n_samples - p - q)
-            reduced_likelihood_function_value = -(n_samples - p - q)*np.log10(sigma2) \
+            if name == 'MFK' :
+                pq = self.p + self.q
+            else :
+                pq = self.p
+                
+            sigma2 = (rho ** 2.).sum(axis=0) /(n_samples - pq)
+            reduced_likelihood_function_value = -(n_samples - pq)*np.log10(sigma2) \
                     - n_samples*np.log10(detR)
         else:
             sigma2 = (rho ** 2.).sum(axis=0) / (self.nt)
