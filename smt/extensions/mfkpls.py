@@ -245,9 +245,7 @@ class MFKPLS(KrgBased):
         beta = self.optimal_par[0]['beta']
         Ft = solve_triangular(C, F, lower=True)
         yt = solve_triangular(C, self.y_norma_all[0], lower=True)
-        print 'd', d.shape
         r_ = self.options['corr'](self.optimal_theta[0], d).reshape(n_eval, self.nt_all[0])
-        print 'r', r_.shape
         gamma = self.optimal_par[0]['gamma']
         
 
