@@ -413,10 +413,8 @@ class KrgBased(SurrogateModel):
             for i in range(len(self.options['theta0'])):
                 constraints.append(lambda log10t,i=i:log10t[i] - np.log10(1e-6))
                 constraints.append(lambda log10t,i=i:np.log10(100) - log10t[i])
-                
-            print D
+    
             self.D = self._componentwise_distance(D,opt=ii)
-            print D
             # Initialization
             k, incr, stop, best_optimal_rlf_value = 0, 0, 1, -1e20
             while (k < stop):
@@ -427,6 +425,7 @@ class KrgBased(SurrogateModel):
                     constraints.append(lambda log10t:log10t[-1] + 16)
                     constraints.append(lambda log10t:10 - log10t[-1])
                 try:
+#                 if True:
                     optimal_theta = 10. ** optimize.fmin_cobyla( \
                     minus_reduced_likelihood_function,np.log10(theta0), \
                     constraints,rhobeg=_rhobeg,rhoend = 1e-4,maxfun=limit)
@@ -497,8 +496,9 @@ class KrgBased(SurrogateModel):
                     self.options['theta0'] = (best_optimal_theta*self.coeff_pls**2).sum(1)
                 else:
                     self.options['theta0'] = (best_optimal_theta*np.abs(self.coeff_pls)).sum(1)
-                self.options['n_comp'] = int(self.nx)
                 limit = 10*self.options['n_comp']
+                self.options['n_comp'] = int(self.nx)
+                
                 self.best_iteration_fail = None
                 exit_function = True
         

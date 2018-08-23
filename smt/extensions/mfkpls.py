@@ -131,11 +131,11 @@ class MFKPLS(KrgBased):
         X = self.X
         y = self.y
         
-#         _, _, self.X_mean, self.y_mean, self.X_std, \
-#             self.y_std = standardization(np.concatenate(xt,axis=0), np.concatenate(yt,axis=0))
-        
-        self.X_mean, self.y_mean, self.X_std, \
-            self.y_std = 0.,0.,1.,1.
+        _, _, self.X_mean, self.y_mean, self.X_std, \
+            self.y_std = standardization(np.concatenate(xt,axis=0), np.concatenate(yt,axis=0))
+         
+#         self.X_mean, self.y_mean, self.X_std, \
+#             self.y_std = 0.,0.,1.,1.
             
         nlevel = self.nlvl
         n_samples = self.nt_all

@@ -52,6 +52,7 @@ class MFKPLSK(KrgBased):
             d = componentwise_distance(dx,self.options['corr'].__name__,self.nx)
         else:
             # KPLS step
+#             print self.options['n_comp']
             d = componentwise_distance_PLS(dx,self.options['corr'].__name__,
                                                 self.options['n_comp'],self.coeff_pls)
         return d
@@ -114,7 +115,8 @@ class MFKPLSK(KrgBased):
         Overrides KrgBased implementation
         Trains the Multi-Fidelity model
         """
-        
+        self.n_comp = self.options['n_comp']
+        self.theta0 = self.options['theta0']
         xt =[]
         yt = []
         i=0
@@ -135,11 +137,11 @@ class MFKPLSK(KrgBased):
         X = self.X
         y = self.y
         
-#         _, _, self.X_mean, self.y_mean, self.X_std, \
-#             self.y_std = standardization(np.concatenate(xt,axis=0), np.concatenate(yt,axis=0))
+        _, _, self.X_mean, self.y_mean, self.X_std, \
+            self.y_std = standardization(np.concatenate(xt,axis=0), np.concatenate(yt,axis=0))
         
-        self.X_mean, self.y_mean, self.X_std, \
-            self.y_std = 0.,0.,1.,1.
+#         self.X_mean, self.y_mean, self.X_std, \
+#             self.y_std = 0.,0.,1.,1.
             
         nlevel = self.nlvl
         n_samples = self.nt_all
@@ -157,6 +159,8 @@ class MFKPLSK(KrgBased):
         self.y_norma_all = [(f-self.y_mean)/self.y_std for f in y] 
 
         for lvl in range(nlevel):
+            self.options['n_comp'] = self.n_comp
+            self.options['theta0'] = self.theta0
             self.X_norma = self.X_norma_all[lvl]
             self.y_norma = self.y_norma_all[lvl]
             # Calculate matrix of distances D between samples
