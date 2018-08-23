@@ -114,7 +114,7 @@ class MFKPLS(KrgBased):
         yt = []
         i=0
         _pls = pls(self.options['n_comp'])
-        self.m_pls = _pls.fit(self.training_points[0][0][0].copy(), self.training_points[0][0][1].copy())
+        self.m_pls = _pls.fit(self.training_points[None][0][0].copy(), self.training_points[None][0][1].copy())
         self.coeff_pls = self.m_pls.x_rotations_     
         
         while(self.training_points.get(i, None) is not None):
@@ -130,10 +130,12 @@ class MFKPLS(KrgBased):
         X = self.X
         y = self.y
         
-        _, _, self.X_mean, self.y_mean, self.X_std, \
-            self.y_std = standardization(np.concatenate(xt,axis=0), np.concatenate(yt,axis=0))
+#         _, _, self.X_mean, self.y_mean, self.X_std, \
+#             self.y_std = standardization(np.concatenate(xt,axis=0), np.concatenate(yt,axis=0))
         
-        
+        self.X_mean, self.y_mean, self.X_std, \
+            self.y_std = 0.,0.,1.,1.
+            
         nlevel = self.nlvl
         n_samples = self.nt_all
 
