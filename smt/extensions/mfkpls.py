@@ -490,9 +490,9 @@ class MFKPLS(KrgBased):
             d_dx=x[:,kx].reshape((n_eval,1))-self.X_norma_all[i][:,kx].reshape((1,self.nt_all[i]))
             theta = np.sum(self.optimal_theta[i] * self.coeff_pls**2,axis=1)
             # scaled predictor
-            dy_dx[:,i] = np.ravel(df_dx-2*theta[kx]*np.dot(d_dx*r_,gamma))*self.y_std/self.X_std[kx]
+            dy_dx[:,i] = np.ravel(df_dx-2*theta[kx]*np.dot(d_dx*r_,gamma))
        
         
            
-        return dy_dx[:,-1]
+        return dy_dx[:,-1]*self.y_std/self.X_std[kx]
         

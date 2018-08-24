@@ -493,6 +493,8 @@ class KrgBased(SurrogateModel):
                     return best_optimal_rlf_value, best_optimal_par, best_optimal_theta
 
                 if self.options['corr'].__name__ == 'squar_exp':
+                    if self.options['eval_noise'] :
+                        best_optimal_theta = best_optimal_theta[:-1]
                     self.options['theta0'] = (best_optimal_theta*self.coeff_pls**2).sum(1)
                 else:
                     self.options['theta0'] = (best_optimal_theta*np.abs(self.coeff_pls)).sum(1)

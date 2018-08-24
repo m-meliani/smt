@@ -47,7 +47,7 @@ class Test(SMTestCase):
             sms['RBF'] = RBF()
             sms['RMTC'] = RMTC()
             sms['RMTB'] = RMTB()
-            sms['MFK'] = MFK(theta0=[1e-2]*ndim)
+            sms['MFK'] = MFK(theta0=[1e-2]*ndim, eval_noise = True)
 
         self.nt = nt
         self.ne = ne
@@ -61,10 +61,15 @@ class Test(SMTestCase):
 
         prob = self.problems[pname]
         sampling = LHS(xlimits=prob.xlimits)
-
+        nt = self.nt 
+        
+        if sname =='MFK':
+            nt = 500
+            
         np.random.seed(0)
-        xt = sampling(self.nt)
+        xt = sampling(nt)
         yt = prob(xt)
+        
         dyt = {}
         for kx in range(prob.xlimits.shape[0]):
             dyt[kx] = prob(xt, kx=kx)
@@ -86,7 +91,8 @@ class Test(SMTestCase):
 
         sm.set_training_values(xt, yt)
 
-        with Silence():
+#         with Silence():
+        if True : 
             sm.train()
 
         t_error = compute_rms_error(sm)
@@ -111,7 +117,7 @@ class Test(SMTestCase):
         
         nt = 500
         np.random.seed(0)
-        xt = sampling(500)
+        xt = sampling(nt)
         yt = prob(xt)
         dyt = {}
         for kx in range(prob.xlimits.shape[0]):
@@ -158,16 +164,17 @@ class Test(SMTestCase):
     @unittest.skipIf(not compiled_available, 'Compiled Fortran libraries not available')
     def test_sphere_RBF(self):
         self.run_test()
-
+ 
     @unittest.skipIf(not compiled_available, 'Compiled Fortran libraries not available')
     def test_sphere_RMTC(self):
         self.run_test()
-
+ 
     @unittest.skipIf(not compiled_available, 'Compiled Fortran libraries not available')
     def test_sphere_RMTB(self):
         self.run_test()
     
     def test_sphere_MFK(self):
+        self.run_test()
         self.run_MF_test()
 
 if __name__ == '__main__':
