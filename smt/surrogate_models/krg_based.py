@@ -106,6 +106,7 @@ class KrgBased(SurrogateModel):
         self.optimal_rlf_value, self.optimal_par, self.optimal_theta = \
                 self._optimize_hyperparam(D)
         if self.options['eval_noise']:
+            self.noise = self.optimal_theta[-1]
             self.optimal_theta = self.optimal_theta[:-1]
         del self.y_norma, self.D
 
