@@ -29,7 +29,7 @@ Xr = np.linspace(0,1, 100)
 Yr = expensive (Xr)
 from smt.extensions.mfkpls import MFKPLS
 
-sm = MFKPLS(theta0=np.array(Xe.shape[1]*[1.]), model = 'KPLS', 
+sm = MFKPLS(n_comp = 1,theta0=np.array(Xe.shape[1]*[1.]), model = 'KPLS', 
                eval_noise = False, print_global = False)
 
 sm.set_training_values(Xc, yc, name= 0)

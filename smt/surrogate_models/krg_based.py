@@ -212,7 +212,7 @@ class KrgBased(SurrogateModel):
             
             C = linalg.cholesky(R, lower=True)
         except (linalg.LinAlgError, ValueError) as e:
-            print "exception : ", e
+            print("exception : ", e)
             return reduced_likelihood_function_value, par
         
         # Get generalized least squares solution
@@ -246,7 +246,7 @@ class KrgBased(SurrogateModel):
         if self.name in ['MFK', 'MFKPLS']:
             
             n_samples = self.nt
-            if name == 'MFK' :
+            if self.name == 'MFK' :
                 pq = self.p + self.q
             else :
                 pq = self.p

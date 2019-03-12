@@ -199,7 +199,7 @@ class MFK(KrgBased):
                 self.q_all[lvl] = F_rho.shape[1]
                 self.F_all[lvl] = np.hstack((F_rho*np.dot(self._predict_intermediate_values(X[lvl], lvl),
                                               np.ones((1,self.q_all[lvl]))), self.F_all[lvl]))
-                print self.F_all[lvl]
+                print(self.F_all[lvl])
             else:
                 self.q_all[lvl] = 0
 
